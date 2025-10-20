@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NFA to DFA Converter</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #0a0a0a;
+            color: #e0e0e0;
+            line-height: 1.6;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            color: #ffffff;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+            letter-spacing: 1px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #888;
+            margin-bottom: 40px;
+            font-size: 0.95em;
+        }
+
+        .section {
+            background: #1a1a1a;
+            border: 1px solid #2a2a2a;
+            border-radius: 8px;
+            padding: 25px;
+            margin-bottom: 30px;
+        }
+
+        .section-title {
+            color: #ffffff;
+            font-size: 1.4em;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #333;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            color: #b0b0b0;
+            margin-bottom: 8px;
+            font-weight: 500;
+            font-size: 0.95em;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            background: #0f0f0f;
+            border: 1px solid #333;
+            border-radius: 4px;
+            color: #e0e0e0;
+            font-size: 0.95em;
+            transition: border-color 0.3s;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #555;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            background: #0f0f0f;
+        }
+
+        th, td {
+            padding: 12px;
+            border: 1px solid #2a2a2a;
+            text-align: center;
+        }
+
+        th {
+            background: #141414;
+            color: #ffffff;
+            font-weight: 600;
+        }
+
+        td input {
+            width: 100%;
+            padding: 8px;
+            background: #0a0a0a;
+            border: 1px solid #333;
+            border-radius: 3px;
+            color: #e0e0e0;
+            font-size: 0.9em;
+        }
+
+        button {
+            background: #ffffff;
+            color: #0a0a0a;
+            border: none;
+            padding: 14px 32px;
+            font-size: 1em;
+            font-weight: 600;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: block;
+            margin: 25px auto;
+            letter-spacing: 0.5px;
+        }
+
+        button:hover {
+            background: #e0e0e0;
+            transform: translateY(-2px);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .steps-container {
+            background: #0f0f0f;
+            padding: 20px;
+            border-radius: 6px;
+            margin-top: 15px;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .step {
+            background: #1a1a1a;
+            border-left: 3px solid #444;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 4px;
+        }
+
+        .step-title {
+            color: #ffffff;
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 1.05em;
+        }
+
+        .step-detail {
+            color: #999;
+            font-size: 0.9em;
+            line-height: 1.8;
+            font-family: 'Courier New', monospace;
+        }
+
+        .state-mapping {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 15px;
+            margin: 15px 0;
+        }
+
+        .mapping-item {
+            background: #0f0f0f;
+            padding: 12px;
+            border-radius: 4px;
+            border: 1px solid #2a2a2a;
+        }
+
+        .dfa-state {
+            color: #ffffff;
+            font-weight: 600;
+        }
+
+        .nfa-states {
+            color: #888;
+            font-size: 0.9em;
+            font-family: 'Courier New', monospace;
+        }
+
+        canvas {
+            background: #0f0f0f;
+            border-radius: 6px;
+            border: 1px solid #2a2a2a;
+            display: block;
+            margin: 20px auto;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #0a0a0a;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #333;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #444;
+        }
+
+        .error {
+            background: #2a1515;
+            border-left: 3px solid #ff4444;
+            padding: 12px;
+            border-radius: 4px;
+            color: #ffaaaa;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>NFA → DFA Converter</h1>
+        <p class="subtitle">Subset Construction Algorithm Visualizer</p>
+
+        <div class="section">
+            <h2 class="section-title">1. NFA Input Definition</h2>
+            
+            <div class="input-group">
+                <label>States (comma-separated, e.g., q0,q1,q2):</label>
+                <input type="text" id="nfaStates" value="q0,q1,q2">
+            </div>
+
+            <div class="input-group">
+                <label>Alphabet Symbols (comma-separated, e.g., a,b):</label>
+                <input type="text" id="nfaAlphabet" value="a,b">
+                <p style="color: #666; font-size: 0.85em; margin-top: 5px;">Note: 'eps' (ε) represents epsilon transitions - empty string transitions that don't consume any input symbol</p>
+            </div>
+
+            <div class="input-group">
+                <label>Start State:</label>
+                <input type="text" id="nfaStartState" value="q0">
+            </div>
+
+            <div class="input-group">
+                <label>Final States (comma-separated):</label>
+                <input type="text" id="nfaFinalStates" value="q2">
+            </div>
+
+            <div id="transitionTableContainer"></div>
+
+            <button onclick="startConversion()">Define NFA & Start Conversion</button>
+        </div>
+
+        <div id="nfaVisualization" class="section hidden">
+            <h2 class="section-title">2. NFA Visualization</h2>
+            
+            <h3 style="color: #ffffff; margin: 20px 0 10px 0;">NFA Details</h3>
+            <div style="background: #0f0f0f; padding: 15px; border-radius: 6px; margin-bottom: 20px;">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 15px;">
+                    <div>
+                        <div style="color: #888; font-size: 0.9em;">States (Q)</div>
+                        <div style="color: #fff; font-family: 'Courier New', monospace;" id="nfaStatesDisplay"></div>
+                    </div>
+                    <div>
+                        <div style="color: #888; font-size: 0.9em;">Alphabet (Σ)</div>
+                        <div style="color: #fff; font-family: 'Courier New', monospace;" id="nfaAlphabetDisplay"></div>
+                    </div>
+                    <div>
+                        <div style="color: #888; font-size: 0.9em;">Start State (q₀)</div>
+                        <div style="color: #fff; font-family: 'Courier New', monospace;" id="nfaStartDisplay"></div>
+                    </div>
+                    <div>
+                        <div style="color: #888; font-size: 0.9em;">Final States (F)</div>
+                        <div style="color: #fff; font-family: 'Courier New', monospace;" id="nfaFinalDisplay"></div>
+                    </div>
+                </div>
+            </div>
+
+            <h3 style="color: #ffffff; margin: 20px 0 10px 0;">NFA Transition Table</h3>
+            <div id="nfaDisplayTable"></div>
+
+            <h3 style="color: #ffffff; margin: 30px 0 10px 0;">NFA State Diagram</h3>
+            <canvas id="nfaCanvas" width="1200" height="600"></canvas>
+        </div>
+
+        <div id="conversionSteps" class="section hidden">
+            <h2 class="section-title">3. Conversion Steps</h2>
+            <div class="steps-container" id="stepsContainer"></div>
+        </div>
+
+        <div id="dfaOutput" class="section hidden">
+            <h2 class="section-title">4. DFA Output</h2>
+            
+            <h3 style="color: #ffffff; margin: 20px 0 10px 0;">State Mapping</h3>
+            <div class="state-mapping" id="stateMapping"></div>
+
+            <h3 style="color: #ffffff; margin: 30px 0 10px 0;">DFA Transition Table</h3>
+            <div id="dfaTableContainer"></div>
+
+            <h3 style="color: #ffffff; margin: 30px 0 10px 0;">DFA State Diagram</h3>
+            <canvas id="dfaCanvas" width="1200" height="600"></canvas>
+        </div>
+    </div>
+
+    <script>
+        let nfa = null;
+        let dfa = null;
+        let conversionSteps = [];
+
+        function generateTransitionTable() {
+            const statesInput = document.getElementById('nfaStates').value.trim();
+            const alphabetInput = document.getElementById('nfaAlphabet').value.trim();
+            
+            if (!statesInput || !alphabetInput) return;
+
+            const states = statesInput.split(',').map(s => s.trim());
+            const alphabet = alphabetInput.split(',').map(s => s.trim());
+            const alphabetWithEps = [...alphabet, 'eps'];
+
+            const container = document.getElementById('transitionTableContainer');
+            let html = '<h3 style="color: #ffffff; margin: 20px 0 10px 0;">Transition Table</h3>';
+            html += '<p style="color: #888; font-size: 0.9em; margin-bottom: 15px;">Enter comma-separated destination states for each transition (e.g., q0,q1 or a3). Leave empty or type ∅ for no transition.</p>';
+            html += '<table><thead><tr><th>State</th>';
+            
+            alphabetWithEps.forEach(symbol => {
+                html += `<th>${symbol}</th>`;
+            });
+            html += '</tr></thead><tbody>';
+
+            states.forEach(state => {
+                html += `<tr><td>${state}</td>`;
+                alphabetWithEps.forEach(symbol => {
+                    html += `<td><input type="text" id="trans_${state}_${symbol}" placeholder="∅"></td>`;
+                });
+                html += '</tr>';
+            });
+
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+
+        document.getElementById('nfaStates').addEventListener('input', generateTransitionTable);
+        document.getElementById('nfaAlphabet').addEventListener('input', generateTransitionTable);
+
+        window.onload = generateTransitionTable;
+
+        function parseNFA() {
+            try {
+                const states = document.getElementById('nfaStates').value.split(',').map(s => s.trim());
+                const alphabet = document.getElementById('nfaAlphabet').value.split(',').map(s => s.trim());
+                const startState = document.getElementById('nfaStartState').value.trim();
+                const finalStates = document.getElementById('nfaFinalStates').value.split(',').map(s => s.trim());
+
+                if (!states.includes(startState)) {
+                    throw new Error('Start state must be in the states list');
+                }
+
+                const transitions = {};
+                states.forEach(state => {
+                    transitions[state] = {};
+                    [...alphabet, 'eps'].forEach(symbol => {
+                        const inputId = `trans_${state}_${symbol}`;
+                        const input = document.getElementById(inputId);
+                        const value = input ? input.value.trim() : '';
+                        
+                        if (value && value !== '∅') {
+                            const nextStates = value.split(',').map(s => s.trim());
+                            transitions[state][symbol] = new Set(nextStates);
+                        } else {
+                            transitions[state][symbol] = new Set();
+                        }
+                    });
+                });
+
+                nfa = {
+                    states: new Set(states),
+                    alphabet: alphabet,
+                    startState: startState,
+                    finalStates: new Set(finalStates),
+                    transitions: transitions
+                };
+
+                return true;
+            } catch (error) {
+                alert('Error parsing NFA: ' + error.message);
+                return false;
+            }
+        }
+
+        function epsilonClosure(states) {
+            const closure = new Set(states);
+            const stack = [...states];
+
+            while (stack.length > 0) {
+                const state = stack.pop();
+                
+                if (nfa.transitions[state] && nfa.transitions[state]['eps']) {
+                    nfa.transitions[state]['eps'].forEach(nextState => {
+                        if (!closure.has(nextState)) {
+                            closure.add(nextState);
+                            stack.push(nextState);
+                        }
+                    });
+                }
+            }
+
+            return closure;
+        }
+
+        function setToSortedString(stateSet) {
+            return '[' + Array.from(stateSet).sort().join(',') + ']';
+        }
+
+        function sortedStringToSet(str) {
+            const inner = str.slice(1, -1);
+            if (!inner) return new Set();
+            return new Set(inner.split(','));
+        }
+
+        function convertNFAtoDFA() {
+            conversionSteps = [];
+            
+            // Step 1: Initial state
+            const initialClosure = epsilonClosure([nfa.startState]);
+            const initialDFAState = setToSortedString(initialClosure);
+            
+            conversionSteps.push({
+                title: 'Initialization',
+                detail: `D₀ = ε-CLOSURE({${nfa.startState}}) = ${initialDFAState}`
+            });
+
+            const dfaStates = new Set([initialDFAState]);
+            const dfaTransitions = {};
+            const unmarkedStates = [initialDFAState];
+            const dfaFinalStates = new Set();
+
+            // Check if initial state is final
+            if (Array.from(initialClosure).some(s => nfa.finalStates.has(s))) {
+                dfaFinalStates.add(initialDFAState);
+            }
+
+            // Step 2: Process unmarked states
+            while (unmarkedStates.length > 0) {
+                const currentDFAState = unmarkedStates.pop();
+                const currentNFAStates = sortedStringToSet(currentDFAState);
+                
+                dfaTransitions[currentDFAState] = {};
+
+                conversionSteps.push({
+                    title: `Processing State ${currentDFAState}`,
+                    detail: `Unmarked states remaining: ${unmarkedStates.length + 1}`
+                });
+
+                nfa.alphabet.forEach(symbol => {
+                    // Move operation
+                    const moveSet = new Set();
+                    currentNFAStates.forEach(nfaState => {
+                        if (nfa.transitions[nfaState] && nfa.transitions[nfaState][symbol]) {
+                            nfa.transitions[nfaState][symbol].forEach(next => {
+                                moveSet.add(next);
+                            });
+                        }
+                    });
+
+                    // Epsilon closure of move set
+                    const nextClosure = epsilonClosure(moveSet);
+                    const nextDFAState = setToSortedString(nextClosure);
+
+                    conversionSteps.push({
+                        title: `  Transition on '${symbol}'`,
+                        detail: `    MOVE(${currentDFAState}, ${symbol}) = ${setToSortedString(moveSet)}\n    ε-CLOSURE = ${nextDFAState}`
+                    });
+
+                    dfaTransitions[currentDFAState][symbol] = nextDFAState;
+
+                    // Add new state if not seen before
+                    if (!dfaStates.has(nextDFAState) && nextClosure.size > 0) {
+                        dfaStates.add(nextDFAState);
+                        unmarkedStates.push(nextDFAState);
+                        
+                        // Check if it's a final state
+                        if (Array.from(nextClosure).some(s => nfa.finalStates.has(s))) {
+                            dfaFinalStates.add(nextDFAState);
+                        }
+
+                        conversionSteps.push({
+                            title: `  New State Discovered`,
+                            detail: `    Added ${nextDFAState} to unmarked states`
+                        });
+                    }
+                });
+            }
+
+            dfa = {
+                states: dfaStates,
+                alphabet: nfa.alphabet,
+                startState: initialDFAState,
+                finalStates: dfaFinalStates,
+                transitions: dfaTransitions
+            };
+        }
+
+        function displayConversionSteps() {
+            const container = document.getElementById('stepsContainer');
+            container.innerHTML = '';
+
+            conversionSteps.forEach(step => {
+                const stepDiv = document.createElement('div');
+                stepDiv.className = 'step';
+                stepDiv.innerHTML = `
+                    <div class="step-title">${step.title}</div>
+                    <div class="step-detail">${step.detail.replace(/\n/g, '<br>')}</div>
+                `;
+                container.appendChild(stepDiv);
+            });
+        }
+
+        function displayDFAOutput() {
+            // State mapping
+            const mappingContainer = document.getElementById('stateMapping');
+            mappingContainer.innerHTML = '';
+            
+            let stateCounter = 0;
+            const stateNames = {};
+            
+            dfa.states.forEach(state => {
+                const name = `D${stateCounter++}`;
+                stateNames[state] = name;
+                
+                const item = document.createElement('div');
+                item.className = 'mapping-item';
+                item.innerHTML = `
+                    <div class="dfa-state">${name}</div>
+                    <div class="nfa-states">= ${state}</div>
+                `;
+                mappingContainer.appendChild(item);
+            });
+
+            // DFA Transition Table
+            const tableContainer = document.getElementById('dfaTableContainer');
+            let html = '<table><thead><tr><th>State</th>';
+            
+            dfa.alphabet.forEach(symbol => {
+                html += `<th>${symbol}</th>`;
+            });
+            html += '</tr></thead><tbody>';
+
+            dfa.states.forEach(state => {
+                const isFinal = dfa.finalStates.has(state);
+                const isStart = state === dfa.startState;
+                let stateName = stateNames[state];
+                if (isStart) stateName = '→ ' + stateName;
+                if (isFinal) stateName = '* ' + stateName;
+                
+                html += `<tr><td>${stateName}</td>`;
+                
+                dfa.alphabet.forEach(symbol => {
+                    const nextState = dfa.transitions[state][symbol];
+                    const nextName = nextState && dfa.states.has(nextState) ? stateNames[nextState] : '∅';
+                    html += `<td>${nextName}</td>`;
+                });
+                html += '</tr>';
+            });
+
+            html += '</tbody></table>';
+            tableContainer.innerHTML = html;
+
+            // Draw state diagram
+            drawDFADiagram(stateNames);
+        }
+
+        function drawDFADiagram(stateNames) {
+            const canvas = document.getElementById('dfaCanvas');
+            const ctx = canvas.getContext('2d');
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Position states in a circle
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const radius = Math.min(centerX, centerY) - 100;
+            
+            const statePositions = {};
+            const statesArray = Array.from(dfa.states);
+            const angleStep = (2 * Math.PI) / statesArray.length;
+            
+            statesArray.forEach((state, index) => {
+                const angle = index * angleStep - Math.PI / 2;
+                statePositions[state] = {
+                    x: centerX + radius * Math.cos(angle),
+                    y: centerY + radius * Math.sin(angle)
+                };
+            });
+
+            // Draw transitions
+            ctx.strokeStyle = '#666';
+            ctx.fillStyle = '#aaa';
+            ctx.lineWidth = 2;
+            ctx.font = '14px Courier New';
+
+            statesArray.forEach(state => {
+                dfa.alphabet.forEach(symbol => {
+                    const nextState = dfa.transitions[state][symbol];
+                    if (nextState && dfa.states.has(nextState)) {
+                        const from = statePositions[state];
+                        const to = statePositions[nextState];
+
+                        if (state === nextState) {
+                            // Self-loop
+                            ctx.beginPath();
+                            ctx.arc(from.x, from.y - 50, 25, 0, Math.PI * 2);
+                            ctx.stroke();
+                            ctx.fillText(symbol, from.x - 5, from.y - 85);
+                        } else {
+                            // Arrow
+                            const angle = Math.atan2(to.y - from.y, to.x - from.x);
+                            const fromX = from.x + 40 * Math.cos(angle);
+                            const fromY = from.y + 40 * Math.sin(angle);
+                            const toX = to.x - 40 * Math.cos(angle);
+                            const toY = to.y - 40 * Math.sin(angle);
+
+                            ctx.beginPath();
+                            ctx.moveTo(fromX, fromY);
+                            ctx.lineTo(toX, toY);
+                            ctx.stroke();
+
+                            // Arrowhead
+                            const headlen = 15;
+                            ctx.beginPath();
+                            ctx.moveTo(toX, toY);
+                            ctx.lineTo(toX - headlen * Math.cos(angle - Math.PI / 6), 
+                                      toY - headlen * Math.sin(angle - Math.PI / 6));
+                            ctx.moveTo(toX, toY);
+                            ctx.lineTo(toX - headlen * Math.cos(angle + Math.PI / 6), 
+                                      toY - headlen * Math.sin(angle + Math.PI / 6));
+                            ctx.stroke();
+
+                            // Label
+                            const midX = (fromX + toX) / 2;
+                            const midY = (fromY + toY) / 2;
+                            ctx.fillText(symbol, midX + 10, midY - 10);
+                        }
+                    }
+                });
+            });
+
+            // Draw states
+            statesArray.forEach(state => {
+                const pos = statePositions[state];
+                const isFinal = dfa.finalStates.has(state);
+                const isStart = state === dfa.startState;
+
+                // Outer circle
+                ctx.strokeStyle = '#ffffff';
+                ctx.fillStyle = '#1a1a1a';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(pos.x, pos.y, 40, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+
+                // Final state (double circle)
+                if (isFinal) {
+                    ctx.beginPath();
+                    ctx.arc(pos.x, pos.y, 33, 0, Math.PI * 2);
+                    ctx.stroke();
+                }
+
+                // Start arrow
+                if (isStart) {
+                    ctx.beginPath();
+                    ctx.moveTo(pos.x - 70, pos.y);
+                    ctx.lineTo(pos.x - 42, pos.y);
+                    ctx.stroke();
+                    ctx.beginPath();
+                    ctx.moveTo(pos.x - 42, pos.y);
+                    ctx.lineTo(pos.x - 52, pos.y - 8);
+                    ctx.moveTo(pos.x - 42, pos.y);
+                    ctx.lineTo(pos.x - 52, pos.y + 8);
+                    ctx.stroke();
+                }
+
+                // State label
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'bold 16px Courier New';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(stateNames[state], pos.x, pos.y);
+            });
+        }
+
+        function displayNFA() {
+            // Display NFA details
+            document.getElementById('nfaStatesDisplay').textContent = 
+                '{' + Array.from(nfa.states).join(', ') + '}';
+            document.getElementById('nfaAlphabetDisplay').textContent = 
+                '{' + nfa.alphabet.join(', ') + '}';
+            document.getElementById('nfaStartDisplay').textContent = nfa.startState;
+            document.getElementById('nfaFinalDisplay').textContent = 
+                '{' + Array.from(nfa.finalStates).join(', ') + '}';
+
+            // Display NFA transition table
+            const tableContainer = document.getElementById('nfaDisplayTable');
+            const alphabetWithEps = [...nfa.alphabet, 'eps'];
+            
+            let html = '<table><thead><tr><th>State</th>';
+            alphabetWithEps.forEach(symbol => {
+                html += `<th>${symbol}</th>`;
+            });
+            html += '</tr></thead><tbody>';
+
+            Array.from(nfa.states).forEach(state => {
+                const isFinal = nfa.finalStates.has(state);
+                const isStart = state === nfa.startState;
+                let stateName = state;
+                if (isStart) stateName = '→ ' + stateName;
+                if (isFinal) stateName = '* ' + stateName;
+
+                html += `<tr><td><strong>${stateName}</strong></td>`;
+                alphabetWithEps.forEach(symbol => {
+                    const transitions = nfa.transitions[state][symbol];
+                    const transStr = transitions.size > 0 ? 
+                        '{' + Array.from(transitions).join(', ') + '}' : '∅';
+                    html += `<td>${transStr}</td>`;
+                });
+                html += '</tr>';
+            });
+
+            html += '</tbody></table>';
+            tableContainer.innerHTML = html;
+
+            // Draw NFA diagram
+            drawNFADiagram();
+        }
+
+        function drawNFADiagram() {
+            const canvas = document.getElementById('nfaCanvas');
+            const ctx = canvas.getContext('2d');
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Position states in a circle
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const radius = Math.min(centerX, centerY) - 100;
+            
+            const statePositions = {};
+            const statesArray = Array.from(nfa.states);
+            const angleStep = (2 * Math.PI) / statesArray.length;
+            
+            statesArray.forEach((state, index) => {
+                const angle = index * angleStep - Math.PI / 2;
+                statePositions[state] = {
+                    x: centerX + radius * Math.cos(angle),
+                    y: centerY + radius * Math.sin(angle)
+                };
+            });
+
+            // Draw transitions
+            ctx.strokeStyle = '#666';
+            ctx.fillStyle = '#aaa';
+            ctx.lineWidth = 2;
+            ctx.font = '14px Courier New';
+
+            const alphabetWithEps = [...nfa.alphabet, 'eps'];
+
+            statesArray.forEach(state => {
+                alphabetWithEps.forEach(symbol => {
+                    const nextStates = nfa.transitions[state][symbol];
+                    nextStates.forEach(nextState => {
+                        const from = statePositions[state];
+                        const to = statePositions[nextState];
+
+                        if (state === nextState) {
+                            // Self-loop
+                            ctx.beginPath();
+                            ctx.arc(from.x, from.y - 50, 25, 0, Math.PI * 2);
+                            ctx.stroke();
+                            
+                            const displaySymbol = symbol === 'eps' ? 'ε' : symbol;
+                            ctx.fillText(displaySymbol, from.x - 5, from.y - 85);
+                        } else {
+                            // Arrow
+                            const angle = Math.atan2(to.y - from.y, to.x - from.x);
+                            const fromX = from.x + 40 * Math.cos(angle);
+                            const fromY = from.y + 40 * Math.sin(angle);
+                            const toX = to.x - 40 * Math.cos(angle);
+                            const toY = to.y - 40 * Math.sin(angle);
+
+                            ctx.beginPath();
+                            ctx.moveTo(fromX, fromY);
+                            ctx.lineTo(toX, toY);
+                            ctx.stroke();
+
+                            // Arrowhead
+                            const headlen = 15;
+                            ctx.beginPath();
+                            ctx.moveTo(toX, toY);
+                            ctx.lineTo(toX - headlen * Math.cos(angle - Math.PI / 6), 
+                                      toY - headlen * Math.sin(angle - Math.PI / 6));
+                            ctx.moveTo(toX, toY);
+                            ctx.lineTo(toX - headlen * Math.cos(angle + Math.PI / 6), 
+                                      toY - headlen * Math.sin(angle + Math.PI / 6));
+                            ctx.stroke();
+
+                            // Label
+                            const midX = (fromX + toX) / 2;
+                            const midY = (fromY + toY) / 2;
+                            const displaySymbol = symbol === 'eps' ? 'ε' : symbol;
+                            ctx.fillText(displaySymbol, midX + 10, midY - 10);
+                        }
+                    });
+                });
+            });
+
+            // Draw states
+            statesArray.forEach(state => {
+                const pos = statePositions[state];
+                const isFinal = nfa.finalStates.has(state);
+                const isStart = state === nfa.startState;
+
+                // Outer circle
+                ctx.strokeStyle = '#ffffff';
+                ctx.fillStyle = '#1a1a1a';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(pos.x, pos.y, 40, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+
+                // Final state (double circle)
+                if (isFinal) {
+                    ctx.beginPath();
+                    ctx.arc(pos.x, pos.y, 33, 0, Math.PI * 2);
+                    ctx.stroke();
+                }
+
+                // Start arrow
+                if (isStart) {
+                    ctx.beginPath();
+                    ctx.moveTo(pos.x - 70, pos.y);
+                    ctx.lineTo(pos.x - 42, pos.y);
+                    ctx.stroke();
+                    ctx.beginPath();
+                    ctx.moveTo(pos.x - 42, pos.y);
+                    ctx.lineTo(pos.x - 52, pos.y - 8);
+                    ctx.moveTo(pos.x - 42, pos.y);
+                    ctx.lineTo(pos.x - 52, pos.y + 8);
+                    ctx.stroke();
+                }
+
+                // State label
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'bold 16px Courier New';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(state, pos.x, pos.y);
+            });
+        }
+
+        function startConversion() {
+            if (!parseNFA()) return;
+
+            try {
+                displayNFA();
+                convertNFAtoDFA();
+                displayConversionSteps();
+                displayDFAOutput();
+
+                document.getElementById('nfaVisualization').classList.remove('hidden');
+                document.getElementById('conversionSteps').classList.remove('hidden');
+                document.getElementById('dfaOutput').classList.remove('hidden');
+
+                document.getElementById('nfaVisualization').scrollIntoView({ behavior: 'smooth' });
+            } catch (error) {
+                alert('Error during conversion: ' + error.message);
+                console.error(error);
+            }
+        }
+    </script>
+</body>
+</html>

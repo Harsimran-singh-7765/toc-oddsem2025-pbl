@@ -1,0 +1,854 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DFA Minimization Tool</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1a1a1a;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: #2d2d2d;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            overflow: hidden;
+            border: 1px solid #404040;
+        }
+
+        header {
+            background: #1a1a1a;
+            color: white;
+            padding: 30px;
+            text-align: center;
+            border-bottom: 2px solid #404040;
+        }
+
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 30px;
+            padding: 30px;
+        }
+
+        .section {
+            background: #1f1f1f;
+            padding: 25px;
+            border-radius: 8px;
+            border: 2px solid #404040;
+        }
+
+        .section h2 {
+            color: #ffffff;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+            border-bottom: 2px solid #555555;
+            padding-bottom: 10px;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #e0e0e0;
+        }
+
+        input[type="text"], select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #404040;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+            background: #2d2d2d;
+            color: #ffffff;
+        }
+
+        input[type="text"]:focus, select:focus {
+            outline: none;
+            border-color: #ffffff;
+        }
+
+        .transition-table-container {
+            overflow-x: auto;
+            margin-top: 15px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            background: #2d2d2d;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: center;
+            border: 1px solid #404040;
+            color: #ffffff;
+        }
+
+        th {
+            background: #1a1a1a;
+            color: white;
+            font-weight: 600;
+        }
+
+        td input {
+            width: 80px;
+            padding: 6px;
+            border: 1px solid #404040;
+            border-radius: 4px;
+            text-align: center;
+            background: #1f1f1f;
+            color: #ffffff;
+        }
+
+        .btn {
+            background: #ffffff;
+            color: #1a1a1a;
+            padding: 15px 30px;
+            border: 2px solid #ffffff;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 20px;
+            transition: all 0.2s;
+        }
+
+        .btn:hover {
+            background: #1a1a1a;
+            color: #ffffff;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 255, 255, 0.2);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .visualization-area {
+            display: grid;
+            gap: 30px;
+        }
+
+        .canvas-container {
+            background: #2d2d2d;
+            border: 2px solid #404040;
+            border-radius: 8px;
+            padding: 20px;
+            min-height: 400px;
+        }
+
+        canvas {
+            display: block;
+            margin: 0 auto;
+            background: #1f1f1f;
+            border-radius: 4px;
+        }
+
+        .steps-container {
+            background: #2d2d2d;
+            border: 2px solid #404040;
+            border-radius: 8px;
+            padding: 20px;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .step {
+            margin-bottom: 25px;
+            padding: 15px;
+            background: #1f1f1f;
+            border-left: 4px solid #ffffff;
+            border-radius: 4px;
+        }
+
+        .step-title {
+            font-weight: 600;
+            color: #ffffff;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+
+        .partition {
+            background: #2d2d2d;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 8px 0;
+            font-family: 'Courier New', monospace;
+            color: #e0e0e0;
+        }
+
+        .group {
+            display: inline-block;
+            background: #1a1a1a;
+            padding: 6px 12px;
+            margin: 4px;
+            border-radius: 4px;
+            border: 1px solid #ffffff;
+            color: #ffffff;
+        }
+
+        .split-reason {
+            color: #b0b0b0;
+            font-style: italic;
+            margin-top: 8px;
+            font-size: 0.9em;
+        }
+
+        .final-state {
+            font-weight: bold;
+            color: #28a745;
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 12px;
+            border-radius: 6px;
+            margin-top: 10px;
+            border: 1px solid #f5c6cb;
+        }
+
+        .state-mapping {
+            background: #2d2d2d;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 15px;
+            border: 1px solid #404040;
+        }
+
+        .state-mapping h3 {
+            color: #ffffff;
+            margin-bottom: 10px;
+        }
+
+        .mapping-item {
+            padding: 8px;
+            margin: 5px 0;
+            background: #1f1f1f;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            color: #e0e0e0;
+            border: 1px solid #404040;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        @media (max-width: 1200px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔄 DFA Minimization Tool</h1>
+            <p class="subtitle">Visualize and minimize Deterministic Finite Automata using Partition Refinement</p>
+        </header>
+
+        <div class="main-content">
+            <div class="input-section">
+                <div class="section">
+                    <h2>DFA Definition</h2>
+                    
+                    <div class="input-group">
+                        <label>States (comma-separated):</label>
+                        <input type="text" id="states" placeholder="q0, q1, q2, q3">
+                    </div>
+
+                    <div class="input-group">
+                        <label>Alphabet (comma-separated):</label>
+                        <input type="text" id="alphabet" placeholder="a, b">
+                    </div>
+
+                    <div class="input-group">
+                        <label>Start State:</label>
+                        <select id="startState">
+                            <option value="">Select start state</option>
+                        </select>
+                    </div>
+
+                    <div class="input-group">
+                        <label>Final States (comma-separated):</label>
+                        <input type="text" id="finalStates" placeholder="q2, q3">
+                    </div>
+
+                    <div class="transition-table-container">
+                        <label>Transition Table:</label>
+                        <div id="transitionTableInput"></div>
+                    </div>
+
+                    <button class="btn" onclick="processAndVisualize()">Define & Visualize DFA</button>
+                    
+                    <div id="errorMessage" class="error hidden"></div>
+                </div>
+            </div>
+
+            <div class="visualization-area">
+                <div class="section">
+                    <h2>Original DFA</h2>
+                    <div class="canvas-container">
+                        <canvas id="originalCanvas" width="700" height="400"></canvas>
+                    </div>
+                    <div id="originalTable"></div>
+                </div>
+
+                <div class="section">
+                    <h2>Minimization Steps</h2>
+                    <div class="steps-container" id="stepsContainer"></div>
+                </div>
+
+                <div class="section">
+                    <h2>Minimized DFA</h2>
+                    <div id="stateMapping"></div>
+                    <div class="canvas-container">
+                        <canvas id="minimizedCanvas" width="700" height="400"></canvas>
+                    </div>
+                    <div id="minimizedTable"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let dfa = null;
+        let minimizedDFA = null;
+
+        // Update transition table when states or alphabet changes
+        document.getElementById('states').addEventListener('input', updateTransitionTable);
+        document.getElementById('alphabet').addEventListener('input', updateTransitionTable);
+
+        function updateTransitionTable() {
+            const statesInput = document.getElementById('states').value;
+            const alphabetInput = document.getElementById('alphabet').value;
+            
+            const states = statesInput.split(',').map(s => s.trim()).filter(s => s);
+            const alphabet = alphabetInput.split(',').map(s => s.trim()).filter(s => s);
+
+            // Update start state dropdown
+            const startStateSelect = document.getElementById('startState');
+            startStateSelect.innerHTML = '<option value="">Select start state</option>';
+            states.forEach(state => {
+                const option = document.createElement('option');
+                option.value = state;
+                option.textContent = state;
+                startStateSelect.appendChild(option);
+            });
+
+            if (states.length === 0 || alphabet.length === 0) {
+                document.getElementById('transitionTableInput').innerHTML = '<p style="color: #b0b0b0; font-style: italic;">Enter states and alphabet to generate transition table</p>';
+                return;
+            }
+
+            // Create transition table
+            let tableHTML = '<table><thead><tr><th>State</th>';
+            alphabet.forEach(symbol => {
+                tableHTML += `<th>δ(q, ${symbol})</th>`;
+            });
+            tableHTML += '</tr></thead><tbody>';
+
+            states.forEach(state => {
+                tableHTML += `<tr><td><strong>${state}</strong></td>`;
+                alphabet.forEach(symbol => {
+                    tableHTML += `<td><input type="text" id="trans_${state}_${symbol}" placeholder="→"></td>`;
+                });
+                tableHTML += '</tr>';
+            });
+
+            tableHTML += '</tbody></table>';
+            document.getElementById('transitionTableInput').innerHTML = tableHTML;
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = message;
+            errorDiv.classList.remove('hidden');
+            setTimeout(() => errorDiv.classList.add('hidden'), 5000);
+        }
+
+        function parseDFA() {
+            const statesInput = document.getElementById('states').value;
+            const alphabetInput = document.getElementById('alphabet').value;
+            const startState = document.getElementById('startState').value;
+            const finalStatesInput = document.getElementById('finalStates').value;
+
+            const states = statesInput.split(',').map(s => s.trim()).filter(s => s);
+            const alphabet = alphabetInput.split(',').map(s => s.trim()).filter(s => s);
+            const finalStates = finalStatesInput.split(',').map(s => s.trim()).filter(s => s);
+
+            // Validation
+            if (states.length === 0) {
+                showError('Please enter at least one state');
+                return null;
+            }
+            if (alphabet.length === 0) {
+                showError('Please enter at least one symbol');
+                return null;
+            }
+            if (!startState) {
+                showError('Please select a start state');
+                return null;
+            }
+            if (!states.includes(startState)) {
+                showError('Start state must be in the states list');
+                return null;
+            }
+            for (let fs of finalStates) {
+                if (!states.includes(fs)) {
+                    showError(`Final state ${fs} is not in the states list`);
+                    return null;
+                }
+            }
+
+            // Parse transitions
+            const transitions = {};
+            for (let state of states) {
+                transitions[state] = {};
+                for (let symbol of alphabet) {
+                    const nextState = document.getElementById(`trans_${state}_${symbol}`).value.trim();
+                    if (!nextState) {
+                        showError(`Missing transition for δ(${state}, ${symbol})`);
+                        return null;
+                    }
+                    if (!states.includes(nextState)) {
+                        showError(`Transition δ(${state}, ${symbol}) = ${nextState} references undefined state`);
+                        return null;
+                    }
+                    transitions[state][symbol] = nextState;
+                }
+            }
+
+            return {
+                states: new Set(states),
+                alphabet: alphabet,
+                startState: startState,
+                finalStates: new Set(finalStates),
+                transitions: transitions
+            };
+        }
+
+        function drawDFA(canvas, dfa, title = '') {
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const states = Array.from(dfa.states);
+            const positions = {};
+            const radius = 30;
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const orbitRadius = Math.min(canvas.width, canvas.height) / 3;
+
+            // Position states in a circle
+            states.forEach((state, i) => {
+                const angle = (2 * Math.PI * i) / states.length - Math.PI / 2;
+                positions[state] = {
+                    x: centerX + orbitRadius * Math.cos(angle),
+                    y: centerY + orbitRadius * Math.sin(angle)
+                };
+            });
+
+            // Draw transitions
+            ctx.strokeStyle = '#e0e0e0';
+            ctx.fillStyle = '#e0e0e0';
+            ctx.font = '14px Arial';
+
+            const drawnTransitions = new Set();
+
+            states.forEach(fromState => {
+                dfa.alphabet.forEach(symbol => {
+                    const toState = dfa.transitions[fromState][symbol];
+                    const key = `${fromState}->${toState}`;
+                    
+                    if (fromState === toState) {
+                        // Self loop
+                        const pos = positions[fromState];
+                        ctx.beginPath();
+                        ctx.arc(pos.x, pos.y - radius - 20, 15, 0, 2 * Math.PI);
+                        ctx.stroke();
+                        ctx.fillText(symbol, pos.x - 5, pos.y - radius - 35);
+                    } else {
+                        const reverseKey = `${toState}->${fromState}`;
+                        const isReverse = drawnTransitions.has(reverseKey);
+                        
+                        const from = positions[fromState];
+                        const to = positions[toState];
+                        
+                        // Calculate control point for curve
+                        const midX = (from.x + to.x) / 2;
+                        const midY = (from.y + to.y) / 2;
+                        const dx = to.x - from.x;
+                        const dy = to.y - from.y;
+                        const dist = Math.sqrt(dx * dx + dy * dy);
+                        
+                        let cpX = midX;
+                        let cpY = midY;
+                        
+                        if (isReverse) {
+                            cpX += dy / dist * 30;
+                            cpY -= dx / dist * 30;
+                        }
+
+                        // Draw curved arrow
+                        ctx.beginPath();
+                        ctx.moveTo(from.x, from.y);
+                        ctx.quadraticCurveTo(cpX, cpY, to.x, to.y);
+                        ctx.stroke();
+
+                        // Arrow head
+                        const angle = Math.atan2(to.y - cpY, to.x - cpX);
+                        const arrowX = to.x - radius * Math.cos(angle);
+                        const arrowY = to.y - radius * Math.sin(angle);
+                        
+                        ctx.beginPath();
+                        ctx.moveTo(arrowX, arrowY);
+                        ctx.lineTo(arrowX - 10 * Math.cos(angle - Math.PI / 6), arrowY - 10 * Math.sin(angle - Math.PI / 6));
+                        ctx.lineTo(arrowX - 10 * Math.cos(angle + Math.PI / 6), arrowY - 10 * Math.sin(angle + Math.PI / 6));
+                        ctx.closePath();
+                        ctx.fill();
+
+                        // Label
+                        const labelOffset = isReverse ? 15 : -15;
+                        const labelX = cpX + dy / dist * labelOffset;
+                        const labelY = cpY - dx / dist * labelOffset;
+                        
+                        const existingLabel = drawnTransitions.has(key);
+                        const labelText = existingLabel ? 
+                            document.getElementById('tempLabel_' + key).textContent + ',' + symbol :
+                            symbol;
+                        
+                        ctx.fillText(labelText, labelX, labelY);
+                        
+                        if (!existingLabel) {
+                            const tempDiv = document.createElement('div');
+                            tempDiv.id = 'tempLabel_' + key;
+                            tempDiv.textContent = labelText;
+                            tempDiv.style.display = 'none';
+                            document.body.appendChild(tempDiv);
+                        }
+                        
+                        drawnTransitions.add(key);
+                    }
+                });
+            });
+
+            // Clean up temp labels
+            document.querySelectorAll('[id^="tempLabel_"]').forEach(el => el.remove());
+
+            // Draw start arrow
+            const startPos = positions[dfa.startState];
+            ctx.beginPath();
+            ctx.moveTo(startPos.x - radius - 40, startPos.y);
+            ctx.lineTo(startPos.x - radius, startPos.y);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(startPos.x - radius, startPos.y);
+            ctx.lineTo(startPos.x - radius - 10, startPos.y - 5);
+            ctx.lineTo(startPos.x - radius - 10, startPos.y + 5);
+            ctx.closePath();
+            ctx.fill();
+
+            // Draw states
+            states.forEach(state => {
+                const pos = positions[state];
+                const isFinal = dfa.finalStates.has(state);
+
+                // Outer circle for final states
+                if (isFinal) {
+                    ctx.strokeStyle = '#ffffff';
+                    ctx.lineWidth = 3;
+                    ctx.beginPath();
+                    ctx.arc(pos.x, pos.y, radius + 5, 0, 2 * Math.PI);
+                    ctx.stroke();
+                }
+
+                // Main circle
+                ctx.strokeStyle = '#ffffff';
+                ctx.fillStyle = '#2d2d2d';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(pos.x, pos.y, radius, 0, 2 * Math.PI);
+                ctx.fill();
+                ctx.stroke();
+
+                // State label
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'bold 14px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(state, pos.x, pos.y);
+            });
+        }
+
+        function displayTransitionTable(dfa, containerId) {
+            let html = '<table><thead><tr><th>State</th>';
+            dfa.alphabet.forEach(symbol => {
+                html += `<th>δ(q, ${symbol})</th>`;
+            });
+            html += '</tr></thead><tbody>';
+
+            Array.from(dfa.states).sort().forEach(state => {
+                const isFinal = dfa.finalStates.has(state);
+                const stateLabel = isFinal ? `<span class="final-state">${state}*</span>` : state;
+                html += `<tr><td><strong>${stateLabel}</strong></td>`;
+                dfa.alphabet.forEach(symbol => {
+                    html += `<td>${dfa.transitions[state][symbol]}</td>`;
+                });
+                html += '</tr>';
+            });
+
+            html += '</tbody></table>';
+            document.getElementById(containerId).innerHTML = html;
+        }
+
+        function minimizeDFA(dfa) {
+            const steps = [];
+            
+            // Initial partition P0
+            const nonFinal = Array.from(dfa.states).filter(s => !dfa.finalStates.has(s));
+            const final = Array.from(dfa.finalStates);
+            
+            let partition = [];
+            if (nonFinal.length > 0) partition.push(new Set(nonFinal));
+            if (final.length > 0) partition.push(new Set(final));
+
+            steps.push({
+                partition: partition.map(g => Array.from(g)),
+                description: 'Initial partition: separate accepting and non-accepting states',
+                splitInfo: null
+            });
+
+            let changed = true;
+            let iteration = 1;
+
+            while (changed) {
+                changed = false;
+                const newPartition = [];
+
+                for (let group of partition) {
+                    const groupArray = Array.from(group);
+                    if (groupArray.length === 1) {
+                        newPartition.push(group);
+                        continue;
+                    }
+
+                    // Try to split this group
+                    const subgroups = new Map();
+                    let splitOccurred = false;
+                    let splitReason = null;
+
+                    for (let state of groupArray) {
+                        const signature = dfa.alphabet.map(symbol => {
+                            const nextState = dfa.transitions[state][symbol];
+                            // Find which group contains nextState
+                            for (let i = 0; i < partition.length; i++) {
+                                if (partition[i].has(nextState)) return i;
+                            }
+                            return -1;
+                        }).join(',');
+
+                        if (!subgroups.has(signature)) {
+                            subgroups.set(signature, []);
+                        }
+                        subgroups.get(signature).push(state);
+                    }
+
+                    if (subgroups.size > 1) {
+                        splitOccurred = true;
+                        changed = true;
+
+                        // Find what caused the split
+                        const signatures = Array.from(subgroups.keys());
+                        const sig0 = signatures[0].split(',').map(Number);
+                        const sig1 = signatures[1].split(',').map(Number);
+                        
+                        for (let i = 0; i < dfa.alphabet.length; i++) {
+                            if (sig0[i] !== sig1[i]) {
+                                const state0 = subgroups.get(signatures[0])[0];
+                                const state1 = subgroups.get(signatures[1])[0];
+                                splitReason = `States ${state0} and ${state1} transition to different groups on symbol '${dfa.alphabet[i]}'`;
+                                break;
+                            }
+                        }
+                    }
+
+                    for (let subgroup of subgroups.values()) {
+                        newPartition.push(new Set(subgroup));
+                    }
+
+                    if (splitOccurred && splitReason) {
+                        steps.push({
+                            partition: newPartition.map(g => Array.from(g)),
+                            description: `Iteration ${iteration}: Refining partition`,
+                            splitInfo: splitReason
+                        });
+                        iteration++;
+                    }
+                }
+
+                partition = newPartition;
+            }
+
+            if (steps.length === 1 || 
+                JSON.stringify(steps[steps.length - 1].partition) !== JSON.stringify(partition.map(g => Array.from(g)))) {
+                steps.push({
+                    partition: partition.map(g => Array.from(g)),
+                    description: 'Final partition: No further refinement possible',
+                    splitInfo: null
+                });
+            }
+
+            return { partition, steps };
+        }
+
+        function constructMinimizedDFA(dfa, partition) {
+            const stateMapping = new Map();
+            const newStates = [];
+
+            partition.forEach((group, idx) => {
+                const newStateName = `S${idx}`;
+                newStates.push(newStateName);
+                group.forEach(state => stateMapping.set(state, newStateName));
+            });
+
+            const newTransitions = {};
+            const newFinalStates = new Set();
+            let newStartState = stateMapping.get(dfa.startState);
+
+            newStates.forEach(newState => {
+                newTransitions[newState] = {};
+                
+                // Find a representative old state
+                const oldState = Array.from(stateMapping.entries()).find(([k, v]) => v === newState)[0];
+                
+                if (dfa.finalStates.has(oldState)) {
+                    newFinalStates.add(newState);
+                }
+
+                dfa.alphabet.forEach(symbol => {
+                    const nextOldState = dfa.transitions[oldState][symbol];
+                    newTransitions[newState][symbol] = stateMapping.get(nextOldState);
+                });
+            });
+
+            return {
+                dfa: {
+                    states: new Set(newStates),
+                    alphabet: dfa.alphabet,
+                    startState: newStartState,
+                    finalStates: newFinalStates,
+                    transitions: newTransitions
+                },
+                stateMapping: stateMapping,
+                groups: partition
+            };
+        }
+
+        function displaySteps(steps) {
+            let html = '';
+            steps.forEach((step, idx) => {
+                html += `<div class="step">`;
+                html += `<div class="step-title">P${idx}: ${step.description}</div>`;
+                html += `<div class="partition">`;
+                step.partition.forEach(group => {
+                    html += `<span class="group">{${group.join(', ')}}</span>`;
+                });
+                html += `</div>`;
+                if (step.splitInfo) {
+                    html += `<div class="split-reason">Split reason: ${step.splitInfo}</div>`;
+                }
+                html += `</div>`;
+            });
+            document.getElementById('stepsContainer').innerHTML = html;
+        }
+
+        function displayStateMapping(stateMapping, groups) {
+            let html = '<div class="state-mapping"><h3>State Mapping</h3>';
+            groups.forEach((group, idx) => {
+                const newState = `S${idx}`;
+                html += `<div class="mapping-item">${newState} = {${Array.from(group).join(', ')}}</div>`;
+            });
+            html += '</div>';
+            document.getElementById('stateMapping').innerHTML = html;
+        }
+
+        function processAndVisualize() {
+            dfa = parseDFA();
+            if (!dfa) return;
+
+            // Display original DFA
+            drawDFA(document.getElementById('originalCanvas'), dfa, 'Original DFA');
+            displayTransitionTable(dfa, 'originalTable');
+
+            // Minimize DFA
+            const { partition, steps } = minimizeDFA(dfa);
+            displaySteps(steps);
+
+            // Construct and display minimized DFA
+            const result = constructMinimizedDFA(dfa, partition);
+            minimizedDFA = result.dfa;
+            
+            displayStateMapping(result.stateMapping, result.groups);
+            drawDFA(document.getElementById('minimizedCanvas'), minimizedDFA, 'Minimized DFA');
+            displayTransitionTable(minimizedDFA, 'minimizedTable');
+        }
+
+        // Initialize with example
+        window.onload = function() {
+            document.getElementById('states').value = 'q0, q1, q2, q3, q4, q5';
+            document.getElementById('alphabet').value = 'a, b';
+            document.getElementById('finalStates').value = 'q5';
+            updateTransitionTable();
+            
+            setTimeout(() => {
+                document.getElementById('startState').value = 'q0';
+                document.getElementById('trans_q0_a').value = 'q1';
+                document.getElementById('trans_q0_b').value = 'q2';
+                document.getElementById('trans_q1_a').value = 'q3';
+                document.getElementById('trans_q1_b').value = 'q4';
+                document.getElementById('trans_q2_a').value = 'q3';
+                document.getElementById('trans_q2_b').value = 'q4';
+                document.getElementById('trans_q3_a').value = 'q5';
+                document.getElementById('trans_q3_b').value = 'q5';
+                document.getElementById('trans_q4_a').value = 'q5';
+                document.getElementById('trans_q4_b').value = 'q5';
+                document.getElementById('trans_q5_a').value = 'q5';
+                document.getElementById('trans_q5_b').value = 'q5';
+            }, 100);
+        };
+    </script>
+</body>
+</html>
