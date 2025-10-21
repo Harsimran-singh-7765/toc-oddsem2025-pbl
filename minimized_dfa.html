@@ -5,12 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DFA Minimization Tool</title>
     <style>
+        /* Base Reset */
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
 
+        /* Global Styles */
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: #1a1a1a;
@@ -46,9 +48,10 @@
             opacity: 0.9;
         }
 
+        /* Desktop Layout (Default) */
         .main-content {
             display: grid;
-            grid-template-columns: 1fr 2fr;
+            grid-template-columns: 1fr 2fr; /* 1/3 for input, 2/3 for viz */
             gap: 30px;
             padding: 30px;
         }
@@ -68,6 +71,7 @@
             padding-bottom: 10px;
         }
 
+        /* Input Styles */
         .input-group {
             margin-bottom: 20px;
         }
@@ -85,22 +89,18 @@
             border: 2px solid #404040;
             border-radius: 6px;
             font-size: 14px;
-            transition: border-color 0.3s;
             background: #2d2d2d;
             color: #ffffff;
         }
 
-        input[type="text"]:focus, select:focus {
-            outline: none;
-            border-color: #ffffff;
-        }
-
+        /* Table Styles */
         .transition-table-container {
-            overflow-x: auto;
+            overflow-x: auto; /* Enables horizontal scroll on small screens */
             margin-top: 15px;
         }
 
         table {
+            min-width: 450px; /* Ensures table headers/rows don't collapse */
             width: 100%;
             border-collapse: collapse;
             margin-top: 10px;
@@ -108,28 +108,26 @@
         }
 
         th, td {
-            padding: 12px;
+            padding: 10px 5px; 
             text-align: center;
             border: 1px solid #404040;
             color: #ffffff;
-        }
-
-        th {
-            background: #1a1a1a;
-            color: white;
-            font-weight: 600;
+            font-size: 0.85em; 
         }
 
         td input {
-            width: 80px;
-            padding: 6px;
+            width: 100%;
+            max-width: 45px; /* Reduced to fit more columns */
+            padding: 4px; /* Reduced padding */
             border: 1px solid #404040;
             border-radius: 4px;
             text-align: center;
             background: #1f1f1f;
             color: #ffffff;
+            font-size: 0.85em; /* Reduced input text size */
         }
 
+        /* Button Styles */
         .btn {
             background: #ffffff;
             color: #1a1a1a;
@@ -151,10 +149,7 @@
             box-shadow: 0 5px 15px rgba(255, 255, 255, 0.2);
         }
 
-        .btn:active {
-            transform: translateY(0);
-        }
-
+        /* Visualization & Steps Styles */
         .visualization-area {
             display: grid;
             gap: 30px;
@@ -165,7 +160,8 @@
             border: 2px solid #404040;
             border-radius: 8px;
             padding: 20px;
-            min-height: 400px;
+            min-height: 350px; 
+            position: relative; 
         }
 
         canvas {
@@ -173,6 +169,10 @@
             margin: 0 auto;
             background: #1f1f1f;
             border-radius: 4px;
+            width: 100%; 
+            height: auto; 
+            max-width: 700px;
+            max-height: 400px;
         }
 
         .steps-container {
@@ -180,48 +180,19 @@
             border: 2px solid #404040;
             border-radius: 8px;
             padding: 20px;
-            max-height: 600px;
+            max-height: 400px; 
             overflow-y: auto;
         }
-
-        .step {
-            margin-bottom: 25px;
-            padding: 15px;
-            background: #1f1f1f;
-            border-left: 4px solid #ffffff;
-            border-radius: 4px;
-        }
-
-        .step-title {
-            font-weight: 600;
-            color: #ffffff;
-            margin-bottom: 10px;
-            font-size: 1.1em;
-        }
-
-        .partition {
-            background: #2d2d2d;
-            padding: 10px;
-            border-radius: 4px;
-            margin: 8px 0;
-            font-family: 'Courier New', monospace;
-            color: #e0e0e0;
-        }
-
+        
+        /* Step and Partition Elements */
         .group {
             display: inline-block;
             background: #1a1a1a;
-            padding: 6px 12px;
-            margin: 4px;
+            padding: 6px 10px;
+            margin: 3px;
             border-radius: 4px;
             border: 1px solid #ffffff;
             color: #ffffff;
-        }
-
-        .split-reason {
-            color: #b0b0b0;
-            font-style: italic;
-            margin-top: 8px;
             font-size: 0.9em;
         }
 
@@ -229,46 +200,94 @@
             font-weight: bold;
             color: #28a745;
         }
-
-        .error {
-            background: #f8d7da;
-            color: #721c24;
-            padding: 12px;
-            border-radius: 6px;
-            margin-top: 10px;
-            border: 1px solid #f5c6cb;
-        }
-
-        .state-mapping {
-            background: #2d2d2d;
-            padding: 15px;
-            border-radius: 6px;
-            margin-top: 15px;
-            border: 1px solid #404040;
-        }
-
-        .state-mapping h3 {
-            color: #ffffff;
-            margin-bottom: 10px;
-        }
-
-        .mapping-item {
-            padding: 8px;
-            margin: 5px 0;
-            background: #1f1f1f;
-            border-radius: 4px;
-            font-family: 'Courier New', monospace;
-            color: #e0e0e0;
-            border: 1px solid #404040;
-        }
-
+        
         .hidden {
             display: none;
         }
 
+        /* --- RESPONSIVE MEDIA QUERIES --- */
+
+        /* Tablet and Smaller Laptop Layout (Stacking) */
         @media (max-width: 1200px) {
             .main-content {
-                grid-template-columns: 1fr;
+                grid-template-columns: 1fr; /* Stack vertically */
+                gap: 20px;
+            }
+        }
+
+        /* Phone Layout (600px and below) */
+        @media (max-width: 600px) {
+            body {
+                padding: 10px;
+            }
+
+            .container {
+                border-radius: 0;
+            }
+
+            header {
+                padding: 15px;
+            }
+
+            h1 {
+                font-size: 2em;
+            }
+            
+            .main-content {
+                padding: 10px;
+                gap: 15px;
+            }
+
+            .section {
+                padding: 15px;
+            }
+
+            .section h2 {
+                font-size: 1.2em;
+            }
+            
+            /* CRITICAL FIX: Ensure table container margins are reset and padding is relative to section, allowing table to scroll */
+            .transition-table-container {
+                /* Inherits overflow-x: auto */
+                margin: 15px 0 0 0; /* No negative margins needed here */
+                padding: 0;
+            }
+            
+            /* CRITICAL FIX: The table's min-width is the key to scrollability on narrow screens */
+            table {
+                min-width: 400px; /* Adjusted minimum width */
+                width: auto;
+            }
+            
+            th, td {
+                padding: 6px 3px;
+                font-size: 0.75em;
+            }
+            
+            td input {
+                max-width: 35px; /* Further reduction for max compatibility */
+                padding: 4px;
+            }
+
+            .btn {
+                padding: 12px 20px;
+                font-size: 14px;
+            }
+
+            .canvas-container {
+                padding: 10px;
+                min-height: 200px;
+            }
+
+            .steps-container {
+                max-height: 250px;
+                padding: 10px;
+            }
+
+            .group {
+                font-size: 0.75em;
+                padding: 4px 7px;
+                margin: 2px;
             }
         }
     </style>
@@ -322,7 +341,7 @@
                 <div class="section">
                     <h2>Original DFA</h2>
                     <div class="canvas-container">
-                        <canvas id="originalCanvas" width="700" height="400"></canvas>
+                        <canvas id="originalCanvas"></canvas>
                     </div>
                     <div id="originalTable"></div>
                 </div>
@@ -336,7 +355,7 @@
                     <h2>Minimized DFA</h2>
                     <div id="stateMapping"></div>
                     <div class="canvas-container">
-                        <canvas id="minimizedCanvas" width="700" height="400"></canvas>
+                        <canvas id="minimizedCanvas"></canvas>
                     </div>
                     <div id="minimizedTable"></div>
                 </div>
@@ -347,6 +366,16 @@
     <script>
         let dfa = null;
         let minimizedDFA = null;
+
+        // Utility to set canvas dimensions correctly before drawing (CRITICAL FOR RESPONSIVENESS)
+        function setCanvasDimensions(canvas) {
+            const container = canvas.parentElement;
+            const w = container.clientWidth - 40; 
+            const h = (w * 400) / 700; // Maintain approx 7:4 aspect ratio
+            canvas.width = w;
+            canvas.height = h > 400 ? 400 : h;
+        }
+
 
         // Update transition table when states or alphabet changes
         document.getElementById('states').addEventListener('input', updateTransitionTable);
@@ -384,7 +413,9 @@
             states.forEach(state => {
                 tableHTML += `<tr><td><strong>${state}</strong></td>`;
                 alphabet.forEach(symbol => {
-                    tableHTML += `<td><input type="text" id="trans_${state}_${symbol}" placeholder="→"></td>`;
+                    // Pre-fill existing values if available to avoid data loss on table update
+                    const existingValue = dfa && dfa.transitions[state] ? dfa.transitions[state][symbol] || '' : '';
+                    tableHTML += `<td><input type="text" id="trans_${state}_${symbol}" placeholder="→" value="${existingValue}"></td>`;
                 });
                 tableHTML += '</tr>';
             });
@@ -412,25 +443,17 @@
 
             // Validation
             if (states.length === 0) {
-                showError('Please enter at least one state');
-                return null;
+                showError('Please enter at least one state'); return null;
             }
             if (alphabet.length === 0) {
-                showError('Please enter at least one symbol');
-                return null;
+                showError('Please enter at least one alphabet symbol'); return null;
             }
-            if (!startState) {
-                showError('Please select a start state');
-                return null;
-            }
-            if (!states.includes(startState)) {
-                showError('Start state must be in the states list');
-                return null;
+            if (!startState || !states.includes(startState)) {
+                showError('Please select a valid start state'); return null;
             }
             for (let fs of finalStates) {
                 if (!states.includes(fs)) {
-                    showError(`Final state ${fs} is not in the states list`);
-                    return null;
+                    showError(`Final state ${fs} is not in the list of states`); return null;
                 }
             }
 
@@ -440,12 +463,8 @@
                 transitions[state] = {};
                 for (let symbol of alphabet) {
                     const nextState = document.getElementById(`trans_${state}_${symbol}`).value.trim();
-                    if (!nextState) {
-                        showError(`Missing transition for δ(${state}, ${symbol})`);
-                        return null;
-                    }
-                    if (!states.includes(nextState)) {
-                        showError(`Transition δ(${state}, ${symbol}) = ${nextState} references undefined state`);
+                    if (!nextState || !states.includes(nextState)) {
+                        showError(`Missing or invalid transition for δ(${state}, ${symbol})`);
                         return null;
                     }
                     transitions[state][symbol] = nextState;
@@ -462,15 +481,22 @@
         }
 
         function drawDFA(canvas, dfa, title = '') {
+            setCanvasDimensions(canvas); 
+            
             const ctx = canvas.getContext('2d');
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
             const states = Array.from(dfa.states);
             const positions = {};
-            const radius = 30;
+            
+            // Dynamic Radius based on screen size/number of states
+            const baseRadius = 30;
+            const maxRadius = Math.min(canvas.width, canvas.height) / (states.length * 0.7);
+            const radius = Math.min(baseRadius, Math.max(15, maxRadius)); 
+
             const centerX = canvas.width / 2;
             const centerY = canvas.height / 2;
-            const orbitRadius = Math.min(canvas.width, canvas.height) / 3;
+            const orbitRadius = Math.min(canvas.width, canvas.height) / 2.5;
 
             // Position states in a circle
             states.forEach((state, i) => {
@@ -481,97 +507,96 @@
                 };
             });
 
-            // Draw transitions
+            // Draw transitions (Simplified for clarity and responsiveness)
             ctx.strokeStyle = '#e0e0e0';
             ctx.fillStyle = '#e0e0e0';
-            ctx.font = '14px Arial';
+            ctx.font = '12px Arial';
+            ctx.lineWidth = 2;
 
-            const drawnTransitions = new Set();
+            const drawnTransitions = new Map();
 
+            // 1. Collect all transitions between state pairs
             states.forEach(fromState => {
                 dfa.alphabet.forEach(symbol => {
                     const toState = dfa.transitions[fromState][symbol];
-                    const key = `${fromState}->${toState}`;
+                    const key = fromState < toState ? `${fromState}->${toState}` : `${toState}->${fromState}`;
                     
-                    if (fromState === toState) {
-                        // Self loop
-                        const pos = positions[fromState];
-                        ctx.beginPath();
-                        ctx.arc(pos.x, pos.y - radius - 20, 15, 0, 2 * Math.PI);
-                        ctx.stroke();
-                        ctx.fillText(symbol, pos.x - 5, pos.y - radius - 35);
-                    } else {
-                        const reverseKey = `${toState}->${fromState}`;
-                        const isReverse = drawnTransitions.has(reverseKey);
-                        
-                        const from = positions[fromState];
-                        const to = positions[toState];
-                        
-                        // Calculate control point for curve
-                        const midX = (from.x + to.x) / 2;
-                        const midY = (from.y + to.y) / 2;
-                        const dx = to.x - from.x;
-                        const dy = to.y - from.y;
-                        const dist = Math.sqrt(dx * dx + dy * dy);
-                        
-                        let cpX = midX;
-                        let cpY = midY;
-                        
-                        if (isReverse) {
-                            cpX += dy / dist * 30;
-                            cpY -= dx / dist * 30;
-                        }
-
-                        // Draw curved arrow
-                        ctx.beginPath();
-                        ctx.moveTo(from.x, from.y);
-                        ctx.quadraticCurveTo(cpX, cpY, to.x, to.y);
-                        ctx.stroke();
-
-                        // Arrow head
-                        const angle = Math.atan2(to.y - cpY, to.x - cpX);
-                        const arrowX = to.x - radius * Math.cos(angle);
-                        const arrowY = to.y - radius * Math.sin(angle);
-                        
-                        ctx.beginPath();
-                        ctx.moveTo(arrowX, arrowY);
-                        ctx.lineTo(arrowX - 10 * Math.cos(angle - Math.PI / 6), arrowY - 10 * Math.sin(angle - Math.PI / 6));
-                        ctx.lineTo(arrowX - 10 * Math.cos(angle + Math.PI / 6), arrowY - 10 * Math.sin(angle + Math.PI / 6));
-                        ctx.closePath();
-                        ctx.fill();
-
-                        // Label
-                        const labelOffset = isReverse ? 15 : -15;
-                        const labelX = cpX + dy / dist * labelOffset;
-                        const labelY = cpY - dx / dist * labelOffset;
-                        
-                        const existingLabel = drawnTransitions.has(key);
-                        const labelText = existingLabel ? 
-                            document.getElementById('tempLabel_' + key).textContent + ',' + symbol :
-                            symbol;
-                        
-                        ctx.fillText(labelText, labelX, labelY);
-                        
-                        if (!existingLabel) {
-                            const tempDiv = document.createElement('div');
-                            tempDiv.id = 'tempLabel_' + key;
-                            tempDiv.textContent = labelText;
-                            tempDiv.style.display = 'none';
-                            document.body.appendChild(tempDiv);
-                        }
-                        
-                        drawnTransitions.add(key);
+                    if (!drawnTransitions.has(key)) {
+                        drawnTransitions.set(key, { symbols: [], from: fromState, to: toState });
                     }
+                    drawnTransitions.get(key).symbols.push(symbol);
                 });
             });
 
-            // Clean up temp labels
-            document.querySelectorAll('[id^="tempLabel_"]').forEach(el => el.remove());
+
+            // 2. Draw them
+            drawnTransitions.forEach(data => {
+                const { from, to, symbols } = data;
+                const symbolsText = symbols.join(',');
+                const isSelfLoop = from === to;
+                
+                const fromPos = positions[from];
+                const toPos = positions[to];
+                
+                if (isSelfLoop) {
+                    // Self loop
+                    ctx.beginPath();
+                    ctx.arc(fromPos.x, fromPos.y - radius - 15, 10, 0, 2 * Math.PI);
+                    ctx.stroke();
+                    ctx.fillText(symbolsText, fromPos.x - 5, fromPos.y - radius - 30);
+                } else {
+                    const dx = toPos.x - fromPos.x;
+                    const dy = toPos.y - fromPos.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    const angle = Math.atan2(dy, dx);
+                    
+                    let cpX = (fromPos.x + toPos.x) / 2;
+                    let cpY = (fromPos.y + toPos.y) / 2;
+
+                    // Check for reverse transition to determine curve
+                    const reverseKey = `${to}->${from}`;
+                    const isBidirectional = drawnTransitions.has(reverseKey);
+                    
+                    if (isBidirectional && from === data.from) { // Only curve the 'forward' drawn transition
+                        const perpAngle = angle + Math.PI / 2;
+                        const offset = 20; 
+                        cpX += offset * Math.cos(perpAngle);
+                        cpY += offset * Math.sin(perpAngle);
+                    }
+                    
+                    const startX = fromPos.x + radius * Math.cos(angle);
+                    const startY = fromPos.y + radius * Math.sin(angle);
+                    const endX = toPos.x - radius * Math.cos(angle);
+                    const endY = toPos.y - radius * Math.sin(angle);
+
+
+                    // Draw curved arrow
+                    ctx.beginPath();
+                    ctx.moveTo(startX, startY);
+                    ctx.quadraticCurveTo(cpX, cpY, endX, endY);
+                    ctx.stroke();
+
+                    // Arrow head
+                    const curveAngle = Math.atan2(endY - cpY, endX - cpX);
+                    const headlen = 8;
+                    
+                    ctx.beginPath();
+                    ctx.moveTo(endX, endY);
+                    ctx.lineTo(endX - headlen * Math.cos(curveAngle - Math.PI / 6), endY - headlen * Math.sin(curveAngle - Math.PI / 6));
+                    ctx.moveTo(endX, endY);
+                    ctx.lineTo(endX - headlen * Math.cos(curveAngle + Math.PI / 6), endY - headlen * Math.sin(curveAngle + Math.PI / 6));
+                    ctx.stroke();
+
+                    // Label
+                    ctx.fillText(symbolsText, cpX + 5, cpY - 5);
+                }
+            });
+
 
             // Draw start arrow
             const startPos = positions[dfa.startState];
             ctx.beginPath();
-            ctx.moveTo(startPos.x - radius - 40, startPos.y);
+            ctx.moveTo(startPos.x - radius - 30, startPos.y);
             ctx.lineTo(startPos.x - radius, startPos.y);
             ctx.stroke();
             ctx.beginPath();
@@ -606,7 +631,7 @@
 
                 // State label
                 ctx.fillStyle = '#ffffff';
-                ctx.font = 'bold 14px Arial';
+                ctx.font = 'bold 12px Arial';
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
                 ctx.fillText(state, pos.x, pos.y);
@@ -825,6 +850,17 @@
             drawDFA(document.getElementById('minimizedCanvas'), minimizedDFA, 'Minimized DFA');
             displayTransitionTable(minimizedDFA, 'minimizedTable');
         }
+        
+        // Ensure canvas redraws on resize (CRITICAL FOR RESPONSIVENESS)
+        window.addEventListener('resize', () => {
+             if (dfa) {
+                drawDFA(document.getElementById('originalCanvas'), dfa, 'Original DFA');
+             }
+             if (minimizedDFA) {
+                drawDFA(document.getElementById('minimizedCanvas'), minimizedDFA, 'Minimized DFA');
+             }
+        });
+
 
         // Initialize with example
         window.onload = function() {
@@ -833,6 +869,7 @@
             document.getElementById('finalStates').value = 'q5';
             updateTransitionTable();
             
+            // Use setTimeout to ensure DOM is fully ready and select options are populated
             setTimeout(() => {
                 document.getElementById('startState').value = 'q0';
                 document.getElementById('trans_q0_a').value = 'q1';
@@ -847,6 +884,9 @@
                 document.getElementById('trans_q4_b').value = 'q5';
                 document.getElementById('trans_q5_a').value = 'q5';
                 document.getElementById('trans_q5_b').value = 'q5';
+                
+                // Automatically visualize the example on load
+                processAndVisualize(); 
             }, 100);
         };
     </script>

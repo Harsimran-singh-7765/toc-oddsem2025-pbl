@@ -128,13 +128,14 @@
         }
 
         .tool-status.coming-soon {
-            color: #888;
+            color: #ff9900; /* Updated for better visibility */
         }
-
+        
+        /* Updated buttons-section to handle three buttons */
         .buttons-section {
             margin-top: 60px;
             display: flex;
-            gap: 30px;
+            gap: 20px; /* Reduced gap slightly */
             justify-content: center;
             flex-wrap: wrap;
         }
@@ -143,8 +144,8 @@
             background: #ffffff;
             color: #0a0a0a;
             border: none;
-            padding: 18px 45px;
-            font-size: 1.1em;
+            padding: 18px 35px; /* Reduced padding slightly */
+            font-size: 1.05em; /* Reduced font size slightly */
             font-weight: 600;
             border-radius: 6px;
             cursor: pointer;
@@ -152,7 +153,7 @@
             text-decoration: none;
             display: inline-block;
             letter-spacing: 0.5px;
-            min-width: 220px;
+            min-width: 200px; /* Reduced min-width slightly */
         }
 
         .btn:hover {
@@ -175,6 +176,18 @@
             background: #333;
             border-color: #444;
         }
+
+        .btn-tertiary { /* New style for the third button */
+            background: #4a9eff;
+            color: #0a0a0a;
+            border: 1px solid #4a9eff;
+        }
+
+        .btn-tertiary:hover {
+            background: #6ab0ff;
+            border-color: #6ab0ff;
+        }
+
 
         .footer {
             margin-top: 80px;
@@ -247,10 +260,10 @@
                 </div>
 
                 <div class="tool-card">
-                    <div class="tool-name">Additional Tools</div>
-                    <div class="tool-status coming-soon">Coming Soon</div>
+                    <div class="tool-name">CFG to CNF Converter</div>
+                    <div class="tool-status available">Available </div>
                 </div>
-            </div>
+                </div>
         </div>
 
         <div class="buttons-section">
@@ -260,7 +273,10 @@
             <a href="minimized_dfa.html" class="btn btn-secondary">
                 DFA Minimization
             </a>
-        </div>
+            <a href="cfg-to-cnf.html" class="btn ">
+                CFG to CNF Converter
+            </a>
+            </div>
 
         <div class="footer">
             © 2025 Theory of Computation PBL Project
