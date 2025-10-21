@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>CFG → CNF Converter</title>
+<style>
+    /* (Kept styling similar to your DFA tool - slightly simplified) */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background: #1a1a1a; color: #e0e0e0; padding: 20px; min-height: 100vh;
+    }
+    .container {
+        max-width: 1200px; margin: 0 auto; background: #2d2d2d; border-radius: 12px;
+        overflow: hidden; border: 1px solid #404040; box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    }
+    header { background: #1a1a1a; padding: 26px; text-align:center; border-bottom:2px solid #404040; }
+    h1 { font-size: 2em; color: #fff; }
+    .subtitle { opacity: 0.9; }
+    .main { display: grid; grid-template-columns: 1fr 1.1fr; gap: 24px; padding: 24px; }
+    .section { background: #1f1f1f; padding: 18px; border-radius: 8px; border: 2px solid #404040; }
+    .section h2 { color:#fff; margin-bottom:12px; font-size:1.2em; border-bottom:2px solid #555; padding-bottom:8px; }
+    label { display:block; margin-bottom:8px; color:#e0e0e0; font-weight:600; }
+    input[type="text"], textarea, select {
+        width:100%; padding:10px; background:#2d2d2d; border:2px solid #404040; border-radius:6px; color:#fff;
+    }
+    textarea { resize:vertical; }
+    .btn { margin-top:14px; width:100%; padding:12px; background:#fff; color:#1a1a1a; font-weight:700; border-radius:6px; border:2px solid #fff; cursor:pointer; }
+    .btn:hover { transform:translateY(-2px); background:#1a1a1a; color:#fff; box-shadow:0 5px 15px rgba(255,255,255,0.12); }
+    .steps { max-height:600px; overflow-y:auto; padding:10px; }
+    .step { background:#2d2d2d; border-left:4px solid #fff; padding:12px; margin-bottom:12px; border-radius:6px; }
+    .partition { font-family: 'Courier New', monospace; color:#e0e0e0; margin-top:8px; }
+    pre.gram { background:#1f1f1f; padding:12px; border-radius:6px; border:1px solid #404040; white-space:pre-wrap; color:#e0e0e0; font-family: 'Courier New', monospace; }
+    .hint { color:#b0b0b0; font-style:italic; margin-top:6px; }
+    @media (max-width: 1000px) { .main { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="container">
+    <header>
+        <h1>⚙️ CFG → CNF Converter</h1>
+        <p class="subtitle">Enter a CFG and see each transformation step towards Chomsky Normal Form</p>
+    </header>
+
+    <div class="main">
+        <div class="section">
+            <h2>CFG Definition</h2>
+
+            <div class="input-group">
+                <label>Variables (comma-separated)</label>
+                <input id="vars" type="text" placeholder="S, A, B">
+            </div>
+
+            <div class="input-group">
+                <label>Terminals (comma-separated)</label>
+                <input id="terms" type="text" placeholder="a, b">
+            </div>
+
+            <div class="input-group">
+                <label>Start Symbol</label>
+                <input id="start" type="text" placeholder="S">
+            </div>
+
+            <div class="input-group">
+                <label>Productions (one per line)</label>
+                <textarea id="prods" rows="8" placeholder="Example:
+S -> ASA | aB
+A -> B | S
+B -> b | ε
+"></textarea>
+                <div class="hint">Use 'ε' or 'epsilon' or 'eps' for empty string. Use '->' or '→' and '|' for alternatives.</div>
+            </div>
+
+            <button class="btn" onclick="convertToCNF()">Convert to CNF</button>
+        </div>
+
+        <div class="section">
+            <h2>Conversion Steps</h2>
+            <div class="steps" id="stepsContainer">
+                <div class="step"><div class="step-title">No conversion yet — input a grammar and press Convert</div></div>
+            </div>
+
+            <h2 style="margin-top:14px">Final CNF Grammar</h2>
+            <pre id="cnfOutput" class="gram">{No output yet}</pre>
+        </div>
+    </div>
+</div>
+
+<script>
+/* Utility helpers */
+function splitList(s) {
+    if(!s) return [];
+    return s.split(',').map(x=>x.trim()).filter(x=>x.length>0);
+}
+function isEpsilon(sym) {
+    return sym === 'ε' || sym.toLowerCase() === 'epsilon' || sym.toLowerCase() === 'eps' || sym === '';
+}
+
+/* Grammar representation:
+   variables: Set
+   terminals: Set
+   start: string
+   productions: Map variable -> array of RHS arrays (each RHS is array of symbols (strings))
+   For RHS symbol: if in variables -> nonterminal, else if in terminals -> terminal
+*/
+
+/* Parse productions textarea into the internal representation */
+function parseGrammar(varsList, termsList, startSymbol, rawLines) {
+    const variables = new Set(varsList);
+    const terminals = new Set(termsList);
+    const prods = new Map();
+    // init
+    for (let v of variables) prods.set(v, []);
+
+    const lines = rawLines.split('\n').map(l=>l.trim()).filter(l=>l.length>0);
+    for (let line of lines) {
+        // accept "S -> ASA | aB" or "S → ASA | aB"
+        const arrowMatch = line.match(/^(.*?)\s*(?:->|→)\s*(.*)$/);
+        if (!arrowMatch) {
+            throw new Error("Invalid production syntax: " + line);
+        }
+        const left = arrowMatch[1].trim();
+        const right = arrowMatch[2].trim();
+        if (!variables.has(left)) {
+            // allow user to declare variables implicitly? prefer strict: require declared
+            throw new Error("Left-hand side variable not in Variables list: " + left);
+        }
+        const alternatives = right.split('|').map(x=>x.trim());
+        for (let alt of alternatives) {
+            if (isEpsilon(alt)) {
+                prods.get(left).push([]); // empty array denotes ε
+            } else {
+                // split alt into symbols (no spaces assumed). We should allow multi-char tokens
+                // We assume symbols are single-character non-space tokens or variables separated by spaces.
+                // To support both forms, if alt contains spaces, split by spaces; otherwise split char-by-char.
+                let symbols;
+                if (/\s+/.test(alt)) {
+                    symbols = alt.split(/\s+/).map(x=>x.trim()).filter(x=>x.length>0);
+                } else {
+                    // break into tokens while trying to match declared variables or terminals of length >1
+                    // Simple approach: treat each character as symbol (common for formal grammars)
+                    symbols = alt.split('').map(c=>c);
+                }
+                prods.get(left).push(symbols);
+            }
+        }
+    }
+
+    return { variables, terminals, start: startSymbol, productions: prods };
+}
+
+/* Deep clone productions map */
+function cloneProductions(prods) {
+    const m = new Map();
+    for (let [A, rhss] of prods.entries()) {
+        m.set(A, rhss.map(rhs => rhs.slice()));
+    }
+    return m;
+}
+
+/* Format a grammar (for display) */
+function grammarToString(vars, terms, start, prods) {
+    let out = '';
+    for (let V of Array.from(vars)) {
+        if (!prods.has(V)) continue;
+        const rhss = prods.get(V).map(rhs => {
+            if (rhs.length === 0) return 'ε';
+            return rhs.join('');
+        });
+        out += `${V} -> ${rhss.join(' | ')}\n`;
+    }
+    return out.trim();
+}
+
+/* Step 1: Add new start symbol S0 if needed (we will add S0 always to be safe) */
+function addNewStart(grammar, steps) {
+    const { variables, productions, start } = grammar;
+    const newStart = findFreshVariable(variables, 'S0');
+    variables.add(newStart);
+    productions.set(newStart, [[start]]);
+    steps.push({
+        description: `Step 1: Add new start symbol ${newStart} with production ${newStart} → ${start}`,
+        grammar: cloneProductions(productions),
+        start: newStart
+    });
+    grammar.start = newStart;
+}
+
+/* find an unused variable name */
+function findFreshVariable(varSet, base) {
+    let candidate = base;
+    let i = 0;
+    while (varSet.has(candidate)) {
+        i++;
+        candidate = base + i;
+    }
+    return candidate;
+}
+
+/* Step 2: Remove ε-productions */
+function removeEpsilonProductions(grammar, steps) {
+    const { variables, productions, start } = grammar;
+    // compute nullable set (variables that derive epsilon)
+    const nullable = new Set();
+    let changed = true;
+    while (changed) {
+        changed = false;
+        for (let A of variables) {
+            if (nullable.has(A)) continue;
+            const rhss = productions.get(A) || [];
+            for (let rhs of rhss) {
+                if (rhs.length === 0 || rhs.every(sym => variables.has(sym) && nullable.has(sym))) {
+                    nullable.add(A);
+                    changed = true;
+                    break;
+                }
+            }
+        }
+    }
+
+    // Build new productions by adding variants removing nullable variables
+    const newProds = new Map();
+    for (let A of variables) newProds.set(A, []);
+
+    for (let A of variables) {
+        const rhss = productions.get(A) || [];
+        for (let rhs of rhss) {
+            if (rhs.length === 0) {
+                // we'll not add epsilon right away (skip), will add only if start should have epsilon
+                continue;
+            }
+            // identify indices of nullable variables in rhs
+            const nullableIdx = [];
+            for (let i = 0; i < rhs.length; i++) {
+                if (variables.has(rhs[i]) && nullable.has(rhs[i])) nullableIdx.push(i);
+            }
+            // generate all subsets of nullable indexes (power set)
+            const subsetsCount = 1 << nullableIdx.length;
+            const produced = new Set(); // avoid duplicates
+            for (let mask = 0; mask < subsetsCount; mask++) {
+                const toRemoveIdx = new Set();
+                for (let j = 0; j < nullableIdx.length; j++) {
+                    if (mask & (1 << j)) toRemoveIdx.add(nullableIdx[j]);
+                }
+                const newRhs = [];
+                for (let k = 0; k < rhs.length; k++) {
+                    if (!toRemoveIdx.has(k)) newRhs.push(rhs[k]);
+                }
+                // if newRhs empty -> epsilon; we'll handle start specially
+                const key = newRhs.join('|') || 'ε';
+                if (!produced.has(key)) {
+                    produced.add(key);
+                    newProds.get(A).push(newRhs.slice());
+                }
+            }
+        }
+    }
+
+    // Decide if start should allow epsilon: if original start (before adding S0) was nullable,
+    // then new start must have epsilon production
+    // We'll keep epsilon production for the current start symbol only if it was nullable originally.
+    const originalStartNullable = nullable.has(grammar.start) || nullable.has(Array.from(variables)[0]); // defensive
+    // In our implementation we added S0 earlier, so check whether any production can become empty for start
+    // Simpler: if any A had an epsilon originally and A is reachable to start? To keep it practical:
+    // We'll add ε for start if original grammar allowed empty string as derived from original start.
+    // Detect whether there exists derivation of start ->* ε via nullable set: if start is in nullable set BEFORE adding new start,
+    // but we added S0 earlier so we need to detect original start (which was stored in grammar.start before addNewStart)
+    // For simplicity, we allow epsilon for the new start only if any variable had empty production or start in nullable set previously.
+    // We'll implement that by checking if any original production had empty RHS (this indicates epsilon existed).
+    // However we already computed nullable — so if grammar.start was nullable then we add epsilon for current start.
+    // For more correctness, keep epsilon for grammar.start if nullable includes grammar.start (after add step).
+    if (nullable.has(grammar.start)) {
+        // add empty production to start
+        newProds.get(grammar.start).push([]);
+    }
+
+    // replace productions
+    grammar.productions = newProds;
+    steps.push({
+        description: 'Step 2: Remove ε-productions (generated variants by omitting nullable variables)',
+        grammar: cloneProductions(newProds),
+        start: grammar.start
+    });
+}
+
+/* Step 3: Remove unit productions */
+function removeUnitProductions(grammar, steps) {
+    const { variables, productions, start } = grammar;
+    // compute unit pairs: for each A, set of B such that A =>* B via only unit productions
+    const unitPairs = new Map();
+    for (let A of variables) {
+        const reach = new Set();
+        // BFS/DFS following unit productions
+        const stack = [A];
+        while (stack.length) {
+            const X = stack.pop();
+            if (reach.has(X)) continue;
+            reach.add(X);
+            const rhss = productions.get(X) || [];
+            for (let rhs of rhss) {
+                if (rhs.length === 1 && variables.has(rhs[0])) {
+                    stack.push(rhs[0]);
+                }
+            }
+        }
+        unitPairs.set(A, reach);
+    }
+
+    const newProds = new Map();
+    for (let A of variables) newProds.set(A, []);
+
+    for (let A of variables) {
+        const reach = unitPairs.get(A);
+        for (let B of reach) {
+            // add all non-unit productions of B to A
+            const rhssB = productions.get(B) || [];
+            for (let rhs of rhssB) {
+                if (!(rhs.length === 1 && variables.has(rhs[0]))) {
+                    // avoid duplicates
+                    addUniqueRhs(newProds.get(A), rhs);
+                }
+            }
+        }
+    }
+
+    grammar.productions = newProds;
+    steps.push({
+        description: 'Step 3: Remove unit productions (A -> B replaced by B\'s non-unit productions)',
+        grammar: cloneProductions(newProds),
+        start: grammar.start
+    });
+}
+
+function addUniqueRhs(list, rhs) {
+    const key = rhs.join('|') || 'ε';
+    for (let e of list) {
+        if ((e.join('|')||'ε') === key) return;
+    }
+    list.push(rhs.slice());
+}
+
+/* Step 4: Remove useless symbols:
+   4a: remove non-generating symbols (those that can't derive a terminal string)
+   4b: remove unreachable symbols (not reachable from start)
+*/
+function removeUselessSymbols(grammar, steps) {
+    const { variables, productions, start } = grammar;
+    // 4a: generating variables (can derive a string of terminals)
+    const generating = new Set();
+    let changed = true;
+    while (changed) {
+        changed = false;
+        for (let A of variables) {
+            if (generating.has(A)) continue;
+            const rhss = productions.get(A) || [];
+            for (let rhs of rhss) {
+                // rhs is generating if every symbol is terminal or is a generating variable
+                let ok = true;
+                for (let s of rhs) {
+                    if (grammar.variables && grammar.variables.has(s) && !generating.has(s)) {
+                        ok = false; break;
+                    }
+                    // if it's not a variable, treat as terminal -> ok
+                }
+                if (ok) { generating.add(A); changed = true; break; }
+            }
+        }
+    }
+
+    // drop variables that are not generating
+    for (let A of Array.from(variables)) {
+        if (!generating.has(A)) {
+            variables.delete(A);
+            productions.delete(A);
+        } else {
+            // filter productions to keep only those containing generating variables or terminals
+            const newRhsList = [];
+            for (let rhs of productions.get(A) || []) {
+                let ok = true;
+                for (let s of rhs) {
+                    if (variables.has(s) === false && grammar.terminals.has(s) === false) {
+                        // symbol is non-generating variable or unknown
+                        ok = false; break;
+                    }
+                }
+                if (ok) newRhsList.push(rhs);
+            }
+            productions.set(A, newRhsList);
+        }
+    }
+
+    // 4b: reachable from start
+    const reachable = new Set();
+    const stack = [start];
+    while (stack.length) {
+        const X = stack.pop();
+        if (reachable.has(X)) continue;
+        reachable.add(X);
+        const rhss = productions.get(X) || [];
+        for (let rhs of rhss) {
+            for (let s of rhs) {
+                if (variables.has(s) && !reachable.has(s)) stack.push(s);
+            }
+        }
+    }
+
+    for (let A of Array.from(variables)) {
+        if (!reachable.has(A)) {
+            variables.delete(A);
+            productions.delete(A);
+        }
+    }
+
+    steps.push({
+        description: 'Step 4: Remove useless symbols (non-generating and unreachable removed)',
+        grammar: cloneProductions(productions),
+        start: grammar.start
+    });
+}
+
+/* Step 5: Convert to CNF
+   - Replace terminals in RHSs with variables when RHS length > 1.
+   - Binarize RHSs of length > 2 by introducing new variables.
+*/
+function convertToCNFForm(grammar, steps) {
+    const { variables, terminals, productions, start } = grammar;
+    const termToVar = new Map();
+
+    // 5a: Replace terminals in RHSs of length > 1 with variables
+    for (let A of Array.from(variables)) {
+        const rhss = productions.get(A) || [];
+        const newRhss = [];
+        for (let rhs of rhss) {
+            if (rhs.length === 0) {
+                // keep epsilon only if start - CNF allows S->ε for start
+                if (A === start) addUniqueRhs(newRhss, []); // keep
+                continue;
+            }
+            if (rhs.length === 1) {
+                // A -> a or A -> B -> keep for now (unit-productions removed)
+                addUniqueRhs(newRhss, rhs);
+                continue;
+            }
+            // length >= 2: replace terminals by new variables
+            const newRhs = rhs.map(sym => {
+                if (terminals.has(sym)) {
+			if (!termToVar.has(sym)) {
+			    const newVar = findFreshVariable(variables, 'Y' + (termToVar.size + 1));
+			    variables.add(newVar);
+			    productions.set(newVar, [[sym]]);
+			    termToVar.set(sym, newVar);
+			}
+			return termToVar.get(sym);
+                } else {
+                    return sym;
+                }
+            });
+            addUniqueRhs(newRhss, newRhs);
+        }
+        productions.set(A, newRhss);
+    }
+
+    // add productions created for terminals are already added to productions map
+
+    // 5b: Binarize RHSs of length > 2
+    // For each production A -> X1 X2 X3 ... Xn (n>2):
+    // replace with A->X1 Y1, Y1->X2 Y2, ..., Yn-2->X{n-1} Xn
+    let createdCount = 0;
+    const newProds = new Map();
+    for (let A of Array.from(variables)) newProds.set(A, []);
+    // ensure existing productions are present
+    for (let [A, rhss] of productions.entries()) {
+        for (let rhs of rhss) {
+            if (rhs.length <= 2) {
+                addUniqueRhs(newProds.get(A), rhs);
+            } else {
+                // create chain
+                let curLeft = A;
+                let symbols = rhs.slice();
+                while (symbols.length > 2) {
+                    const X1 = symbols.shift();
+                    // create a new variable for the rest
+                    const newVar = findFreshVariable(variables, 'X' + (++createdCount));
+                    variables.add(newVar);
+                    // curLeft -> X1 newVar
+                    addUniqueRhs(newProds.get(curLeft), [X1, newVar]);
+                    // prepare newVar's production for next loop
+                    newProds.set(newVar, newProds.get(newVar) || []);
+                    curLeft = newVar;
+                }
+                // now symbols length == 2
+                addUniqueRhs(newProds.get(curLeft), symbols);
+            }
+        }
+    }
+
+    // merge terminal replacement one-symbol productions (they were in productions but ensure in newProds)
+    for (let [A, rhss] of productions.entries()) {
+        for (let rhs of rhss) {
+            if (rhs.length === 1 && (terminals.has(rhs[0]) || variables.has(rhs[0]))) {
+                addUniqueRhs(newProds.get(A), rhs);
+            } else if (rhs.length === 0 && A === start) {
+                // keep epsilon only for start
+                addUniqueRhs(newProds.get(A), []);
+            }
+        }
+    }
+
+    // update productions
+    grammar.productions = newProds;
+
+    steps.push({
+        description: 'Step 5: Convert to CNF (replace terminals in long RHS, binarize RHSs to length 2)',
+        grammar: cloneProductions(grammar.productions),
+        start: grammar.start
+    });
+}
+
+/* Display helpers */
+function displaySteps(steps) {
+    const container = document.getElementById('stepsContainer');
+    container.innerHTML = '';
+    steps.forEach((s, idx) => {
+        const div = document.createElement('div');
+        div.className = 'step';
+        const title = document.createElement('div');
+        title.style.fontWeight = '700';
+        title.style.color = '#ffffff';
+        title.textContent = `P${idx}: ${s.description}`;
+        div.appendChild(title);
+        const grammarPre = document.createElement('pre');
+        grammarPre.className = 'partition';
+        grammarPre.textContent = grammarToString(new Set(s.grammar.keys()), new Set(), s.start, s.grammar);
+        div.appendChild(grammarPre);
+        container.appendChild(div);
+    });
+}
+
+/* Main orchestration: parse -> steps -> display final CNF */
+function convertToCNF() {
+    document.getElementById('cnfOutput').textContent = '{processing...}';
+    try {
+        // parse inputs
+        const varsList = splitList(document.getElementById('vars').value);
+        const termsList = splitList(document.getElementById('terms').value);
+        const startSymbol = document.getElementById('start').value.trim();
+        const rawProds = document.getElementById('prods').value;
+
+        if (!startSymbol) throw new Error('Provide a start symbol.');
+        if (!varsList.includes(startSymbol)) throw new Error('Start symbol must be included in Variables list.');
+
+        // build grammar object
+        const grammar = parseGrammar(new Set(varsList), new Set(termsList), startSymbol, rawProds);
+        // grammar currently has sets and Map; ensure sets are accessible from grammar for steps
+        grammar.variables = grammar.variables || grammar.vars || grammar.variables;
+        grammar.terminals = grammar.terminals || grammar.terms || grammar.terminals;
+
+        // Steps list for UI
+        const steps = [];
+
+        // Step 1: add new start symbol S0 (we always add for safety)
+        addNewStart(grammar, steps);
+
+        // Step 2: Remove epsilon productions
+        removeEpsilonProductions(grammar, steps);
+
+        // Step 3: Remove unit productions
+        removeUnitProductions(grammar, steps);
+
+        // Step 4: Remove useless symbols
+        removeUselessSymbols(grammar, steps);
+
+        // Step 5: Convert to CNF (term replacement and binarize)
+        convertToCNFForm(grammar, steps);
+
+        // show steps
+        displaySteps(steps);
+
+        // final CNF shown
+        const finalStr = grammarToString(grammar.variables, grammar.terminals, grammar.start, grammar.productions);
+        document.getElementById('cnfOutput').textContent = finalStr || '{empty grammar}';
+    } catch (err) {
+        document.getElementById('cnfOutput').textContent = 'Error: ' + err.message;
+        console.error(err);
+    }
+}
+
+/* Initialize example grammar on load */
+window.onload = function() {
+    // example from your screenshot
+    document.getElementById('vars').value = 'S, A, B';
+    document.getElementById('terms').value = 'a, b';
+    document.getElementById('start').value = 'S';
+    document.getElementById('prods').value = 'S -> ASA | aB\nA -> B | S\nB -> b | ε';
+};
+</script>
+</body>
+</html>
+
